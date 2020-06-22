@@ -98,3 +98,45 @@ file("public/500.html", <<-CODE, force: true)
   </body>
 </html>
 CODE
+
+# rails_command("db:create")
+
+after_bundle do
+  run "yarn add bootstrap jquery popper.js moment @fortawesome/fontawesome-free"
+
+  append_file "app/javascript/packs/application.js", <<-CODE
+
+import $ from 'jquery'
+global.$ = $
+global.jQuery = $
+import 'bootstrap'
+
+import moment from 'moment'
+moment.locale('ja')
+global.moment = moment
+
+import '@fortawesome/fontawesome-free/js/all'
+
+import '../stylesheets/application'
+CODE
+
+  file "app/javascript/stylesheets/application.scss", <<-CODE
+@import '~bootstrap/scss/bootstrap'
+CODE
+
+  insert_into_file("config/webpack/environment.js", <<-CODE, before: "module.exports = environment")
+const webpack = require('webpack')
+environment.plugins.prepend('Provide',
+                            new webpack.ProvidePlugin({
+                              $: 'jquery/src/jquery',
+                              jQuery: 'jquery/src/jquery',
+                              Popper: ['popper.js', 'default']
+                            })
+                           )
+
+CODE
+
+  git :init
+  git add: "."
+  git commit: %Q{ -m 'Initial commit' }
+end
