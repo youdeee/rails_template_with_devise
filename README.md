@@ -11,7 +11,7 @@
 ### Replace placeholder
 - DEFAULT_APP_NAME : your app name show at views.
 - DEFAULT_HOST : mailer settings.
-- DEFAULT_LOGIN_RESOURCES : root resources during logged in.
+- YOUR_LOGIN_RESOURCES : root resources during logged in.
 
 ## TODO
 - Add rspec settings.

@@ -203,7 +203,7 @@ class ApplicationController < ActionController::Base
   before_action :authenticate_user!
 
   def after_sign_in_path_for(_resource)
-    # DEFAULT_LOGIN_RESOURCES_path
+    # YOUR_LOGIN_RESOURCES_path
   end
 end
 CODE
@@ -418,12 +418,6 @@ CODE
     route <<-CODE
 if Rails.env.development?
   mount LetterOpenerWeb::Engine, at: "/letter_opener"
-end
-CODE
-
-    route <<-CODE
-scope :app do
-  # resources :DEFAULT_LOGIN_RESOURCES
 end
 CODE
 
