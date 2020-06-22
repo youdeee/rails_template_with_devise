@@ -10,7 +10,7 @@ CODE
 route "root to: 'home#index'"
 
 file "app/controllers/home_controller.rb", <<-CODE
-class HomeController < ActionController::Base
+class HomeController < ApplicationController
 end
 CODE
 
@@ -60,7 +60,7 @@ file "app/views/home/index.html.erb", <<-CODE
 </style>
 CODE
 
-file "public/422.html", <<-CODE
+file("public/404.html", <<-CODE, force: true)
 <!DOCTYPE html>
 <html>
   <head>
@@ -73,7 +73,7 @@ file "public/422.html", <<-CODE
 </html>
 CODE
 
-file "public/422.html", <<-CODE
+file("public/422.html", <<-CODE, force: true)
 <!DOCTYPE html>
 <html>
   <head>
@@ -86,7 +86,7 @@ file "public/422.html", <<-CODE
 </html>
 CODE
 
-file "public/500.html", <<-CODE
+file("public/500.html", <<-CODE, force: true)
 <!DOCTYPE html>
 <html>
   <head>
