@@ -1,3 +1,6 @@
+skip_devise = yes?('Do you skip devise? [yes or ELSE]')
+commentout = ->(c) { '# ' if c }
+
 # git
 append_file ".gitignore", <<-CODE
 
@@ -35,16 +38,16 @@ group :development do
   gem "rubocop-rails", require: false
   gem "rubocop-rspec", require: false
 
-  # gem "letter_opener"
-  # gem "letter_opener_web"
+  #{commentout[skip_devise]}gem "letter_opener"
+  #{commentout[skip_devise]}gem "letter_opener_web"
 end
 
 gem "rails-i18n"
 gem "meta-tags"
 
-# gem "devise"
-# gem "devise-bootstrap-views", "~> 1.0"
-# gem "devise-i18n"
+#{commentout[skip_devise]}gem "devise"
+#{commentout[skip_devise]}gem "devise-bootstrap-views", "~> 1.0"
+#{commentout[skip_devise]}gem "devise-i18n"
 CODE
 
 # editorconfig
@@ -72,7 +75,35 @@ end
 config.time_zone = "Tokyo"
 config.i18n.default_locale = :ja
 config.i18n.load_path += Dir[Rails.root.join("config", "locales", "**", "*.{rb,yml}").to_s]
+
 CODE
+end
+
+unless skip_devise
+  environment(nil, env: "development") do
+    <<-CODE
+config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
+config.action_mailer.delivery_method = :letter_opener_web
+
+CODE
+  end
+
+  environment(nil, env: "production") do
+    <<-CODE
+config.action_mailer.default_url_options = { host: "DEFAULT_HOST", protocol: "https" }
+config.action_mailer.delivery_method = :smtp
+config.action_mailer.smtp_settings = {
+  :user_name => ENV["SENDGRID_USERNAME"],
+  :password => ENV["SENDGRID_PASSWORD"],
+  :domain => "herokuapp.com",
+  :address => "smtp.sendgrid.net",
+  :port => 587,
+  :authentication => :plain,
+  :enable_starttls_auto => true
+}
+
+CODE
+  end
 end
 
 # locales
@@ -84,6 +115,7 @@ ja:
     site: DEFAULT_APP_NAME
     login: ログイン
     logout: ログアウト
+    signup: アカウント作成
     delete_action: 削除する
 CODE
 
@@ -139,7 +171,8 @@ file("app/views/layouts/application.html.erb", <<-CODE, force: true)
 </html>
 CODE
 
-file("app/views/layouts/devise.html.erb", <<-CODE, force: true)
+unless skip_devise
+  file("app/views/layouts/devise.html.erb", <<-CODE, force: true)
 <!DOCTYPE html>
 <html>
   <head>
@@ -165,6 +198,17 @@ file("app/views/layouts/devise.html.erb", <<-CODE, force: true)
 </html>
 CODE
 
+  file("app/controllers/application_controller.rb", <<-CODE, force: true)
+class ApplicationController < ActionController::Base
+  before_action :authenticate_user!
+
+  def after_sign_in_path_for(_resource)
+    DEFAULT_LOGIN_RESOURCES_path
+  end
+end
+CODE
+end
+
 file("app/views/layouts/home.html.erb", <<-CODE, force: true)
 <!DOCTYPE html>
 <html>
@@ -176,8 +220,8 @@ file("app/views/layouts/home.html.erb", <<-CODE, force: true)
       <div class="container d-flex justify-content-between">
         <%= link_to t("common.site"), root_path, class: "py-2" %>
         <div class="py-2">
-          <%= link_to t("common.login"), new_user_session_path %>
-          <%= link_to t("common.signup"), new_user_registration_path, class: "pl-2" %>
+          <%#{'#' if skip_devise}= link_to t("common.login"), new_user_session_path %>
+          <%#{'#' if skip_devise}= link_to t("common.signup"), new_user_registration_path, class: "pl-2" %>
         </div>
       </div>
     </nav>
@@ -262,7 +306,7 @@ file("public/500.html", <<-CODE, force: true)
 CODE
 
 # LP
-route "root to: 'home#index'"
+route "root to: \"home#index\""
 
 file "app/controllers/home_controller.rb", <<-CODE
 class HomeController < ActionController::Base
@@ -274,7 +318,7 @@ file "app/views/home/index.html.erb", <<-CODE
   <div class="col-md-5 p-lg-5 mx-auto my-5">
     <h1 class="font-weight-normal"><%= t(".description") %></h1>
     <p class="lead font-weight-normal"><%= t(".subdescription") %></p>
-    <%= link_to t(".create_account"), "", class: "btn btn-outline-secondary" %>
+    <%#{'#' if skip_devise}= link_to t(".create_account"), new_user_registration_path, class: "btn btn-outline-secondary" %>
   </div>
   <div class="product-device shadow-sm d-none d-md-block"></div>
   <div class="product-device product-device-2 shadow-sm d-none d-md-block"></div>
@@ -316,7 +360,7 @@ file "app/views/home/index.html.erb", <<-CODE
 CODE
 
 # db
-# rails_command("db:create")
+rails_command("db:create")
 
 after_bundle do
   # js
@@ -339,8 +383,8 @@ import '../stylesheets/application'
 CODE
 
   file "app/javascript/stylesheets/application.scss", <<-CODE
-@import '~bootstrap/scss/bootstrap'
-@import '~@fortawesome/fontawesome-free/scss/fontawesome'
+@import '~bootstrap/scss/bootstrap';
+@import '~@fortawesome/fontawesome-free/scss/fontawesome';
 
 .site-header {
   background-color: rgba(0, 0, 0, .85);
@@ -368,6 +412,59 @@ environment.plugins.prepend('Provide',
                            )
 
 CODE
+
+  # devise
+  unless skip_devise
+    route <<-CODE
+if Rails.env.development?
+  mount LetterOpenerWeb::Engine, at: "/letter_opener"
+end
+CODE
+
+    route <<-CODE
+scope :app do
+  resources :DEFAULT_LOGIN_RESOURCES
+end
+CODE
+
+    run "bin/spring stop"
+    run "bundle exec rails generate devise:install"
+    run "rm config/locales/devise.en.yml"
+
+    gsub_file "config/initializers/devise.rb", "# config.lock_strategy = :failed_attempts", "config.lock_strategy = :failed_attempts"
+    gsub_file "config/initializers/devise.rb", "# config.unlock_keys = [:email]", "config.unlock_keys = [:email]"
+    gsub_file "config/initializers/devise.rb", "# config.unlock_strategy = :both", "config.unlock_strategy = :both"
+    gsub_file "config/initializers/devise.rb", "# config.maximum_attempts = 20", "config.maximum_attempts = 10"
+    gsub_file "config/initializers/devise.rb", "# config.unlock_in = 1.hour", "config.unlock_in = 0.5.hour"
+    gsub_file "config/initializers/devise.rb", "# config.last_attempt_warning = true", "config.last_attempt_warning = true"
+
+    run "bundle exec rails generate devise user"
+
+    file("app/models/user.rb", <<-CODE, force: true)
+class User < ApplicationRecord
+  devise :database_authenticatable, :registerable,
+         :recoverable, :rememberable, :validatable,
+         :confirmable, :lockable, :trackable
+end
+CODE
+
+    gsub_file Dir.glob("db/migrate/*")[0], "# t.integer  :sign_in_count, default: 0, null: false", "t.integer  :sign_in_count, default: 0, null: false"
+    gsub_file Dir.glob("db/migrate/*")[0], "# t.datetime :current_sign_in_at", "t.datetime :current_sign_in_at"
+    gsub_file Dir.glob("db/migrate/*")[0], "# t.datetime :last_sign_in_at", "t.datetime :last_sign_in_at"
+    gsub_file Dir.glob("db/migrate/*")[0], "# t.string   :current_sign_in_ip", "t.string   :current_sign_in_ip"
+    gsub_file Dir.glob("db/migrate/*")[0], "# t.string   :last_sign_in_ip", "t.string   :last_sign_in_ip"
+    gsub_file Dir.glob("db/migrate/*")[0], "# t.string   :confirmation_token", "t.string   :confirmation_token"
+    gsub_file Dir.glob("db/migrate/*")[0], "# t.datetime :confirmed_at", "t.datetime :confirmed_at"
+    gsub_file Dir.glob("db/migrate/*")[0], "# t.datetime :confirmation_sent_at", "t.datetime :confirmation_sent_at"
+    gsub_file Dir.glob("db/migrate/*")[0], "# t.string   :unconfirmed_email", "t.string   :unconfirmed_email"
+    gsub_file Dir.glob("db/migrate/*")[0], "# t.integer  :failed_attempts, default: 0, null: false", "t.integer  :failed_attempts, default: 0, null: false"
+    gsub_file Dir.glob("db/migrate/*")[0], "# t.string   :unlock_token", "t.string   :unlock_token"
+    gsub_file Dir.glob("db/migrate/*")[0], "# t.datetime :locked_at", "t.datetime :locked_at"
+    gsub_file Dir.glob("db/migrate/*")[0], "# add_index :users, :confirmation_token,   unique: true", "add_index :users, :confirmation_token,   unique: true"
+    gsub_file Dir.glob("db/migrate/*")[0], "# add_index :users, :unlock_token,         unique: true", "add_index :users, :unlock_token,         unique: true"
+
+    rails_command("db:migrate")
+  end
 
   # run rubocop
   run "bundle exec rubocop --auto-correct"
