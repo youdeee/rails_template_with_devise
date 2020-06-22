@@ -14,4 +14,4 @@
 - DEFAULT_LOGIN_RESOURCES : root resources during logged in.
 
 ## TODO
-- rspec settings
+- Add rspec settings.
