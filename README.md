@@ -15,3 +15,4 @@
 
 ## TODO
 - Add rspec settings.
+- Improve views. (devise, home)
