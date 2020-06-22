@@ -7,6 +7,45 @@ append_file ".gitignore", <<-CODE
 /vendor/bundle
 CODE
 
+file("public/404.html", <<-CODE, force: true)
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Page not found (404)</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+  </head>
+  <body>
+    <h1>Page not found (404)</h1>
+  </body>
+</html>
+CODE
+
+file("public/422.html", <<-CODE, force: true)
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Change was rejected (422)</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+  </head>
+  <body>
+    <h1>Change was rejected (422)</h1>
+  </body>
+</html>
+CODE
+
+file("public/500.html", <<-CODE, force: true)
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Internal server error (500)</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+  </head>
+  <body>
+    <h1>Internal server error (500)</h1>
+  </body>
+</html>
+CODE
+
 route "root to: 'home#index'"
 
 file "app/controllers/home_controller.rb", <<-CODE
@@ -58,45 +97,6 @@ file "app/views/home/index.html.erb", <<-CODE
 
   .overflow-hidden { overflow: hidden; }
 </style>
-CODE
-
-file("public/404.html", <<-CODE, force: true)
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Page not found (404)</title>
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-  </head>
-  <body>
-    <h1>Page not found (404)</h1>
-  </body>
-</html>
-CODE
-
-file("public/422.html", <<-CODE, force: true)
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Change was rejected (422)</title>
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-  </head>
-  <body>
-    <h1>Change was rejected (422)</h1>
-  </body>
-</html>
-CODE
-
-file("public/500.html", <<-CODE, force: true)
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Internal server error (500)</title>
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-  </head>
-  <body>
-    <h1>Internal server error (500)</h1>
-  </body>
-</html>
 CODE
 
 # rails_command("db:create")
